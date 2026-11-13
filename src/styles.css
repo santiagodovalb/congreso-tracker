@@ -14,6 +14,15 @@
   --sans: 'Geist', system-ui, sans-serif;
 }
 
+/* The toggle sets data-theme; without it, the system setting decides. */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -55,12 +64,41 @@ button {
   cursor: pointer;
 }
 
+/* Top row: byline on the left, theme toggle on the right. */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.theme {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+}
+
+.theme:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.theme:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 /* Author byline, top left. */
 .byline {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 28px;
   color: var(--text);
   text-decoration: none;
 }

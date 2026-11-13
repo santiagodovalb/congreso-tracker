@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>¿Cómo vota?</title>
     <meta name="description" content="Votaciones nominales de la Cámara de Diputados de Argentina: cómo vota cada bloque y quién vota en disidencia con su bloque." />
+    <script>
+      // Apply a saved theme before first paint to avoid a flash.
+      try {
+        const t = localStorage.getItem('theme');
+        if (t) document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
     <!-- Bump ?v= when the icon changes: browsers cache favicons hard. -->
     <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

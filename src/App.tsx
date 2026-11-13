@@ -47,6 +47,18 @@ export default function App() {
   const [data, setData] = useState<Data>();
   const [error, setError] = useState(false);
   const [tab, setTab] = useState<'votes' | 'deputies'>('votes');
+  // Same as the portfolio: the saved choice (applied pre-paint in index.html), else the system setting.
+  const [theme, setTheme] = useState(
+    () => document.documentElement.dataset.theme ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+  );
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    try {
+      localStorage.setItem('theme', next);
+    } catch {}
+  };
 
   useEffect(() => {
     // The hash keeps the chosen chamber shareable and survives reloads.
@@ -76,15 +88,20 @@ export default function App() {
   return (
     <main>
       <header>
-        <a className="byline" href={PORTFOLIO} target="_blank" rel="noopener">
-          <img src="/avatar.png" alt="" width={40} height={40} />
-          <span>
-            <span className="by-label">Un proyecto de</span>
-            <span className="by-name">
-              Santiago Doval <span className="by-link">Ver portfolio ↗</span>
+        <div className="topbar">
+          <a className="byline" href={PORTFOLIO} target="_blank" rel="noopener">
+            <img src="/avatar.png" alt="" width={40} height={40} />
+            <span>
+              <span className="by-label">Un proyecto de</span>
+              <span className="by-name">
+                Santiago Doval <span className="by-link">Ver portfolio ↗</span>
+              </span>
             </span>
-          </span>
-        </a>
+          </a>
+          <button type="button" className="theme" onClick={toggleTheme} aria-label="Cambiar modo claro u oscuro">
+            {theme === 'dark' ? '☀' : '☾'}
+          </button>
+        </div>
         <div className="switch" role="group" aria-label="Cámara">
           {(Object.keys(TEXT) as ChamberId[]).map((c) => (
             <button key={c} aria-pressed={chamber === c} onClick={() => setChamber(c)}>
