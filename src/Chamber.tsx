@@ -55,7 +55,7 @@ function useCountUp(ms: number) {
   return p;
 }
 
-export default function Chamber({ members }: { members: Member[] }) {
+export default function Chamber({ members, onPick }: { members: Member[]; onPick: (name: string) => void }) {
   // Remounted per chamber (keyed in App), so the numbers count up on load and on every switch.
   const p = useCountUp(COUNT_MS);
   // Hover previews a bloc; a click or tap pins it (touch screens have no hover).
@@ -98,11 +98,12 @@ export default function Chamber({ members }: { members: Member[] }) {
           r={seatR}
           fill={groupColor(s.group)}
           opacity={focus && focus !== s.group ? 0.18 : 1}
+          onClick={() => onPick(s.name)}
         >
           <title>{`${s.name} · ${s.bloc}${s.province ? ` · ${s.province}` : ''}`}</title>
         </circle>
       )),
-    [seats, seatR, focus],
+    [seats, seatR, focus, onPick],
   );
 
   return (

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
-import type { Chamber as ChamberId, Code, Counts, Data, Vote } from '../scripts/stats.ts';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Chamber as ChamberId, Counts, Data, Vote } from '../scripts/stats.ts';
 import { blocColor } from './blocs';
 import Chamber from './Chamber';
 
 const PORTFOLIO = 'https://portfolio-santiagodoval.vercel.app/';
 
-const LABEL: Record<string, string> = { A: 'Afirmativo', N: 'Negativo', B: 'Abstención', X: 'Ausente' };
+const LABEL: Record<string, string> = { A: 'Afirmativo', N: 'Negativo', B: 'Abstención', X: 'Ausente', P: 'Presidió' };
 const SEGMENTS = ['A', 'N', 'B', 'X'] as const;
 // Below this many comparable votes a dissent rate is noise.
 const MIN_COMPARABLE = 20;
@@ -15,6 +15,18 @@ const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCas
 const fmtDate = (d: string) =>
   new Date(`${d}T12:00:00`).toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' });
 const size = (c: Counts) => c.A + c.N + c.B + c.X;
+const surname = (name: string) => name.split(',')[0];
+const given = (name: string) => fold(name).split(',')[1]?.trim().split(/\W+/)[0];
+
+/** Seat names and vote-record names differ in accents, middle names and nicknames; match on surname, then first given name. */
+function findDeputy(deputies: Data['deputies'], name: string) {
+  const cands = deputies.map((d, i) => ({ d, i })).filter(({ d }) => fold(d.name).includes(fold(surname(name))));
+  const hit =
+    cands.find(({ d }) => fold(d.name) === fold(name)) ??
+    cands.find(({ d }) => given(d.name) === given(name)) ??
+    (cands.length === 1 ? cands[0] : undefined);
+  return hit?.i ?? null;
+}
 
 const TEXT = {
   diputados: {
@@ -40,6 +52,8 @@ const TEXT = {
 } satisfies Record<ChamberId, Record<string, string>>;
 type Text = (typeof TEXT)[ChamberId];
 
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 const fromHash = (): ChamberId => (location.hash === '#senado' ? 'senado' : 'diputados');
 
 export default function App() {
@@ -47,6 +61,8 @@ export default function App() {
   const [data, setData] = useState<Data>();
   const [error, setError] = useState(false);
   const [tab, setTab] = useState<'votes' | 'deputies'>('votes');
+  // A new object per click, so clicking the same seat again still re-runs the search and scroll.
+  const [pick, setPick] = useState<{ name: string }>();
   // Same as the portfolio: the saved choice (applied pre-paint in index.html), else the system setting.
   const [theme, setTheme] = useState(
     () => document.documentElement.dataset.theme ?? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
@@ -110,7 +126,14 @@ export default function App() {
           ))}
         </div>
         <h1>{t.title}</h1>
-        <Chamber key={data.chamber} members={data.members} />
+        <Chamber
+          key={data.chamber}
+          members={data.members}
+          onPick={(name) => {
+            setTab('deputies');
+            setPick({ name });
+          }}
+        />
         <p className="lead">
           {data.votes.length} votaciones nominales {t.of} desde {fmtDate(data.since)}. Cómo vota cada bloque y quién vota
           en disidencia con su bloque.
@@ -125,7 +148,7 @@ export default function App() {
         </div>
       </header>
 
-      {tab === 'votes' ? <Votes key={data.chamber} data={data} /> : <Deputies key={data.chamber} data={data} t={t} />}
+      {tab === 'votes' ? <Votes key={data.chamber} data={data} /> : <Deputies key={data.chamber} data={data} t={t} pick={pick} />}
 
       <footer>
         <p>
@@ -216,11 +239,21 @@ function Bar({ counts }: { counts: Counts }) {
 
 type Sort = 'against' | 'absent' | 'name';
 
-function Deputies({ data, t }: { data: Data; t: Text }) {
+function Deputies({ data, t, pick }: { data: Data; t: Text; pick?: { name: string } }) {
   const [q, setQ] = useState('');
   const [bloc, setBloc] = useState('');
   const [sort, setSort] = useState<Sort>('against');
   const [open, setOpen] = useState<number | null>(null);
+  const ref = useRef<HTMLElement>(null);
+
+  // A seat click: search by surname, open that person's record and bring the list into view.
+  useEffect(() => {
+    if (!pick) return;
+    setQ(surname(pick.name));
+    setBloc('');
+    setOpen(findDeputy(data.deputies, pick.name));
+    ref.current?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+  }, [pick, data]);
 
   const blocs = useMemo(() => {
     const n = new Map<string, number>();
@@ -248,7 +281,7 @@ function Deputies({ data, t }: { data: Data; t: Text }) {
   );
 
   return (
-    <section>
+    <section ref={ref}>
       <div className="filters">
         <input type="search" placeholder={`Buscar ${t.person}…`} aria-label={`Buscar ${t.person}`} value={q} onChange={(e) => setQ(e.target.value)} />
         <select aria-label="Filtrar por bloque" value={bloc} onChange={(e) => setBloc(e.target.value)}>
@@ -282,8 +315,14 @@ function Deputies({ data, t }: { data: Data; t: Text }) {
 }
 
 function DeputyRow({ d, data, open, onToggle }: { d: Data['deputies'][number] & { i: number }; data: Data; open: boolean; onToggle: () => void }) {
-  const dissents = useMemo(
-    () => (open ? data.votes.flatMap((v) => v.against.filter((a) => a.i === d.i).map((a) => ({ v, pos: a.pos as Code }))) : []),
+  // Every vote held while they were a member ('.' = not in the chamber yet), newest first like data.votes.
+  const history = useMemo(
+    () =>
+      open
+        ? data.votes
+            .filter((v) => v.codes[d.i] !== '.')
+            .map((v) => ({ v, code: v.codes[d.i], pos: v.against.find((a) => a.i === d.i)?.pos }))
+        : [],
     [open, data, d.i],
   );
 
@@ -317,18 +356,18 @@ function DeputyRow({ d, data, open, onToggle }: { d: Data['deputies'][number] & 
       {open && (
         <tr className="expanded">
           <td colSpan={3}>
-            {dissents.length ? (
-              <ul className="dissent">
-                {dissents.map(({ v, pos }) => (
-                  <li key={v.id}>
-                    <span className="date">{fmtDate(v.date)}</span> {v.title}: votó {LABEL[v.codes[d.i]].toLowerCase()}, su bloque{' '}
-                    {LABEL[pos].toLowerCase()}.
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="muted">Siempre votó con su bloque.</p>
-            )}
+            <ul className="history">
+              {history.map(({ v, code, pos }) => (
+                <li key={v.id} className={pos ? 'against' : undefined}>
+                  <span className="date">{fmtDate(v.date)}</span>
+                  <span>{v.title}</span>
+                  <span className="cast">
+                    <i className={`dot ${code}`} /> {LABEL[code]}
+                    {pos && <span className="sub">en disidencia · bloque: {LABEL[pos].toLowerCase()}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </td>
         </tr>
       )}
