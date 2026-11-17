@@ -1,17 +1,19 @@
 :root {
   color-scheme: light dark;
-  --bg: light-dark(#f6f3ee, #131210);
-  --surface: light-dark(#fffdf9, #1b1917);
-  --text: light-dark(#1c1a17, #ede8e0);
-  --muted: light-dark(#6b655c, #9b948a);
-  --line: light-dark(#e3ddd3, #2e2b27);
-  --accent: light-dark(#c96442, #e07a55);
+  --bg: light-dark(#ffffff, #0f1238);
+  --surface: light-dark(#f4f6ff, #171b4a);
+  --text: light-dark(#14163a, #f4f4ff);
+  --muted: light-dark(#555a80, #a9addb);
+  --line: light-dark(#dde1f5, #2a2f6b);
+  --accent: light-dark(#1b2fb8, #93a3ff); /* cobalt; lighter in dark mode for contrast */
+  --yellow: #ffc531;
+  --tomato: #ff5a36;
   --yes: light-dark(#2f8a5b, #4fb383);
   --no: light-dark(#c2453b, #e06a5f);
   --abs: light-dark(#d39b2a, #e3b44f);
   --away: light-dark(#cfc8bc, #4a4540);
-  --serif: 'Instrument Serif', Georgia, serif;
-  --sans: 'Geist', system-ui, sans-serif;
+  --display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --sans: 'Bricolage Grotesque', system-ui, sans-serif;
 }
 
 /* The toggle sets data-theme; without it, the system setting decides. */
@@ -42,7 +44,9 @@ main {
 }
 
 h1 {
-  font: 400 clamp(2.4rem, 7vw, 3.6rem) / 1.05 var(--serif);
+  font: 800 clamp(2.4rem, 7vw, 3.6rem) / 0.95 var(--display);
+  letter-spacing: -0.035em;
+  color: var(--accent);
   margin: 0 0 12px;
 }
 
@@ -141,7 +145,7 @@ button {
   border-radius: 999px;
 }
 
-/* Chamber switch: serif tabs with an accent underline, echoing the title. */
+/* Chamber switch: bold display tabs with an accent underline, echoing the title. */
 .switch {
   display: flex;
   gap: 24px;
@@ -150,7 +154,9 @@ button {
 }
 
 .switch button {
-  font-family: var(--serif);
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
   font-size: 1.5rem;
   line-height: 1.2;
   padding: 0 0 6px;
@@ -449,7 +455,8 @@ th:not(:first-child) {
 }
 
 .seats-total {
-  font-family: var(--serif);
+  font-family: var(--display);
+  font-weight: 800;
   font-size: 0.2px;
   font-variant-numeric: tabular-nums; /* digits don't jiggle while counting */
   fill: var(--text);
