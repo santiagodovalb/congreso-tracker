@@ -3,7 +3,7 @@ import type { Chamber as ChamberId, Counts, Data, Vote } from '../scripts/stats.
 import { blocColor } from './blocs';
 import Chamber from './Chamber';
 
-const PORTFOLIO = 'https://portfolio-santiagodoval.vercel.app/';
+const PORTFOLIO = 'https://santiagodoval.com.ar/';
 
 const LABEL: Record<string, string> = { A: 'Afirmativo', N: 'Negativo', B: 'Abstención', X: 'Ausente', P: 'Presidió' };
 const SEGMENTS = ['A', 'N', 'B', 'X'] as const;
